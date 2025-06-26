@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block title %}Certificates on Blockchain{% endblock %}
+
+{% block content %}
+<br>
+<center>
+    <br>
+    <a href="{% url 'logout' %}" class="btn btn-danger">Log Out</a>
+    <a href="{% url 'password_change' %}" class="btn btn-primary">Change Password</a>
+    <a href="/admin" class="btn btn-primary">Admin Panel</a>
+</center>
+
+<div class="container mt-4">
+    <h2 class="text-light mb-4">Certificates on Blockchain</h2>
+    <table class="table table-bordered table-dark table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th>Certificate No.</th>
+                <th>Certificate Name</th>
+                <th>Course Code</th>
+                <th>Course Name</th>
+                <th>Roll No.</th>
+                <th>Student Name</th>
+                <th>Hash</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for certificate in certificates %}
+            <tr>
+                <td class="certificate-id">{{ certificate.id }}</td>
+                <td class="certificate-name">{{ certificate.certificate_name }}</td>
+                <td>
+                    {% for course in certificate.student.courses.all %}
+                        <span class="course-code">{{ course.course_code }}</span><br>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for course in certificate.student.courses.all %}
+                        <span class="course-name">{{ course.course_name }}</span><br>
+                    {% endfor %}
+                </td>
+                <td class="roll-number">{{ certificate.student.roll_number }}</td>
+                <td class="student-name">{{ certificate.student.name }}</td>
+                <td class="hash" title="{{ certificate.chash }}">
+                    {{ certificate.chash|slice:":10" }}...
+                </td>
+                <td>
+                    {% if certificate.tid %}
+                        <span class="text-success">✅ Written to Blockchain</span><br>
+                        <code style="font-size: 12px; cursor: pointer;" title="{{ certificate.tid }}" onclick="this.innerText = this.title;">
+    {{ certificate.tid|slice:":10" }}...
+</code><br>
+
+                        <button class="btn btn-info btn-sm verify-blockchain-btn mt-1">Verify</button>
+                        <div class="verification-result text-light small mt-1" style="display:none;"></div>
+                    {% else %}
+                        <button class="btn btn-success btn-sm write-blockchain-btn">Write</button>
+                        <div class="loading-message mt-2" style="display:none;">
+                            <span class="text-warning">⏳ Writing to Blockchain...</span>
+                        </div>
+                        <p class="blockhash text-info mt-1"></p>
+                        <p class="blockNumber text-info"></p>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+<script>
+    const contractAddress = "0x31e573E3A045b7CE5e8Eb914ba75d9e1F0f65038";
+    const contractABI = [
+  {
+    "constant": true,
+    "inputs": [
+      { "internalType": "string", "name": "", "type": "string" }
+    ],
+    "name": "certificates",
+    "outputs": [
+      { "internalType": "string", "name": "certificateName", "type": "string" },
+      { "internalType": "string", "name": "courseCode", "type": "string" },
+      { "internalType": "string", "name": "courseName", "type": "string" },
+      { "internalType": "string", "name": "rollNumber", "type": "string" },
+      { "internalType": "string", "name": "studentName", "type": "string" },
+      { "internalType": "string", "name": "hash", "type": "string" }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      { "internalType": "string", "name": "certificateId", "type": "string" },
+      { "internalType": "string", "name": "certificateName", "type": "string" },
+      { "internalType": "string", "name": "courseCode", "type": "string" },
+      { "internalType": "string", "name": "courseName", "type": "string" },
+      { "internalType": "string", "name": "rollNumber", "type": "string" },
+      { "internalType": "string", "name": "studentName", "type": "string" },
+      { "internalType": "string", "name": "hash", "type": "string" }
+    ],
+    "name": "setCD",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      { "internalType": "string", "name": "certificateId", "type": "string" }
+    ],
+    "name": "getCD",
+    "outputs": [
+      { "internalType": "string", "name": "", "type": "string" },
+      { "internalType": "string", "name": "", "type": "string" },
+      { "internalType": "string", "name": "", "type": "string" },
+      { "internalType": "string", "name": "", "type": "string" },
+      { "internalType": "string", "name": "", "type": "string" },
+      { "internalType": "string", "name": "", "type": "string" },
+      { "internalType": "string", "name": "", "type": "string" }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
+
+    let web3;
+    let contract;
+    let userAccount;
+
+    async function initWeb3() {
+        if (window.ethereum) {
+            try {
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                web3 = new Web3(window.ethereum);
+                const accounts = await web3.eth.getAccounts();
+                userAccount = accounts[0];
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                console.log("✅ MetaMask connected:", userAccount);
+            } catch (error) {
+                alert("❌ MetaMask connection denied.");
+                console.error(error);
+            }
+        } else {
+            alert("❌ Please install MetaMask to use this feature.");
+        }
+    }
+
+    $(document).ready(function () {
+        initWeb3();
+
+        $(".write-blockchain-btn").click(async function () {
+            if (!contract || !userAccount) {
+                alert("❗ MetaMask not connected. Please refresh and allow access.");
+                return;
+            }
+
+            const $btn = $(this);
+            const $row = $btn.closest("tr");
+
+            const certificateId = $row.find(".certificate-id").text().trim();
+            const certificateName = $row.find(".certificate-name").text().trim();
+            const courseCode = $row.find(".course-code").map(function () {
+                return $(this).text().trim();
+            }).get().join(", ");
+            const courseName = $row.find(".course-name").map(function () {
+                return $(this).text().trim();
+            }).get().join(", ");
+            const rollNumber = $row.find(".roll-number").text().trim();
+            const studentName = $row.find(".student-name").text().trim();
+            const hash = $row.find(".hash").attr("title").trim();
+
+            const $loader = $row.find(".loading-message");
+            const $blockHash = $row.find(".blockhash");
+            const $blockNumber = $row.find(".blockNumber");
+
+            $btn.prop("disabled", true);
+            $loader.show();
+
+            try {
+                const tx = await contract.methods.setCD(
+                    certificateId, certificateName, courseCode,
+                    courseName, rollNumber, studentName, hash
+                ).send({ from: userAccount });
+
+                $blockHash.text("✅ Tx Hash: " + tx.transactionHash);
+                $blockNumber.text("📦 Block: " + tx.blockNumber);
+
+                window.location.href = `/save_transaction/${certificateId}/${tx.transactionHash}`;
+            } catch (err) {
+                console.error("❌ Blockchain write failed:", err);
+                $blockHash.text("❌ Error writing to blockchain.");
+                alert("⚠️ Write failed. Check browser console.");
+            } finally {
+                $loader.hide();
+                $btn.prop("disabled", false);
+            }
+        });
+
+$(".verify-blockchain-btn").click(async function () {
+    const $btn = $(this);
+    const $row = $btn.closest("tr");
+    const $result = $row.find(".verification-result");
+    const certificateId = $row.find(".certificate-id").text().trim();
+
+    if (!contract || !userAccount) {
+        alert("❗ MetaMask not connected.");
+        return;
+    }
+
+    console.log("🔍 Verifying ID:", certificateId);
+
+    $btn.prop("disabled", true);
+    $result.hide().text("");
+
+    try {
+        const data = await contract.methods.getCD(certificateId).call();
+        console.log("✅ getCD() result:", data);
+
+        const values = Object.values(data).slice(0, 7);  // ✅ Fix: Convert object to array
+
+        const labels = [
+            "📄 Certificate ID",
+            "🏷️ Certificate Name",
+            "📘 Course Code",
+            "📚 Course Name",
+            "🎓 Roll Number",
+            "👤 Student Name",
+            "🔐 Hash"
+        ];
+
+        let output = "<strong>✅ On-Chain Data:</strong><br>";
+        values.forEach((val, idx) => {
+            output += `${labels[idx]}: <code>${val}</code><br>`;
+        });
+
+        $result
+            .removeClass("text-danger")
+            .addClass("text-success")
+            .html(output);
+    } catch (error) {
+        console.error("❌ Verification error:", error.message || error);
+        $result
+            .removeClass("text-success")
+            .addClass("text-danger")
+            .html("⚠️ Error retrieving on-chain data. See console for details.");
+    } finally {
+        $btn.prop("disabled", false);
+        $result.show();
+    }
+});
+
+
+    });
+</script>
+{% endblock %}

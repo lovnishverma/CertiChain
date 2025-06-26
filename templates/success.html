@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Success</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+
+    <div class="container text-center mt-5">
+        <h1 class="text-success">✅ Transaction Successful</h1>
+        <p class="lead">Your certificate transaction has been successfully recorded on the local blockchain.</p>
+
+        <div class="alert alert-secondary mt-4">
+            <strong>Transaction Hash:</strong><br>
+            <code id="txHash">{{ transaction_hash }}</code>
+        </div>
+
+        <button class="btn btn-outline-info mb-3" onclick="copyHash()">📋 Copy Hash</button>
+        <br>
+        <a href="/" class="btn btn-primary btn-lg mt-2">⬅️ Go Back to Dashboard</a>
+    </div>
+
+    <script>
+        function copyHash() {
+            const hashText = document.getElementById("txHash").textContent;
+            navigator.clipboard.writeText(hashText).then(() => {
+                alert("Transaction hash copied to clipboard.");
+            });
+        }
+    </script>
+</body>
+</html>
