@@ -23,7 +23,7 @@ This project is based on the research paper **[Blockchain-Based Certificate Veri
 
 ## Technologies Used
 - **Backend**: Django, Django REST Framework
-- **Frontend**: React.js (or Django templates if applicable)
+- **Frontend**: Django templates (or React.js if applicable)
 - **Blockchain**: Ethereum/Solidity (or Hyperledger, depending on implementation)
 - **Database**: PostgreSQL / SQLite
 - **Authentication**: JWT / OAuth2
